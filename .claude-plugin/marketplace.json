@@ -1,0 +1,5 @@
+{
+  "name": "usage-meter",
+  "owner": { "name": "fmoliv" },
+  "plugins": [{ "name": "usage-meter", "source": "./" }]
+}
