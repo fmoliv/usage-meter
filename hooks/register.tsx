@@ -17,8 +17,21 @@ const LIMIT_NAMES: Record<string, string> = {
 
 const limitName = (kind: string) => LIMIT_NAMES[kind] ?? kind
 
-const levelColor = (percent: number) =>
-  percent >= 95 ? 'error' : percent >= 80 ? 'warning' : 'success'
+/** One colour per item, from Claude's warm palette: readable on light and dark backgrounds. */
+const ITEM_COLORS: Record<string, string> = {
+  task: '#D97757', // Claude clay
+  context: '#6A9BCC', // sky blue
+  five_hour: '#788C5D', // olive
+  seven_day: '#9B7EC8', // lavender
+  spend_limit: '#C9A15B', // kraft gold
+  cost: '#A89F94', // warm grey
+}
+
+const itemColor = (key: string) => ITEM_COLORS[key] ?? '#B08968'
+
+/** The ⚠ beside an item past a threshold: amber from 80%, red from 95%. */
+const flag = (percent: number) =>
+  percent >= 95 ? { glyph: ' ⚠', color: 'error' } : percent >= 80 ? { glyph: ' ⚠', color: 'warning' } : null
 
 /** A small bar of glyphs, e.g. ▰▰▰▱▱▱ for 50%. */
 const bar = (percent: number, cells = 6) => {
@@ -160,7 +173,7 @@ export const register: Register = on => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey) return next(e)
 
-    const { Box, Text, Progress } = $.ui.resolve(e)
+    const { Box, Text } = $.ui.resolve(e)
     const rawTasks = await read($, tasksAtom)
     const tasks = Array.isArray(rawTasks) ? rawTasks : []
     const rawUsage = await read($, usageAtom)
@@ -188,38 +201,43 @@ export const register: Register = on => {
       parts.push({ key: 'cost', label: `~$${usage.costUsd.toFixed(2)} est.` })
     }
 
+    const taskColor = itemColor('task')
+
     return (
       <Box flexDirection="column">
         {total > 0 ? (
-          <Box flexDirection="row">
-            <Text bold>Task {percent}% </Text>
-            <Progress
-              label="Task checklist"
-              value={done}
-              max={total}
-              valueText={`${done} of ${total} steps`}
-              color={done === total ? 'success' : 'claude'}
-            />
+          <Text size="caption" tabular>
+            <Text color={taskColor} weight="medium">
+              Task {bar(percent, 10)} {percent}%
+            </Text>
             <Text dimColor>
-              {' '}
+              {' · '}
               {done}/{total}
               {step ? ` · ${step}` : ''}
             </Text>
-          </Box>
-        ) : (
-          <Text dimColor>Task: no checklist yet{e.props.isWorking ? ' (working…)' : ''}</Text>
-        )}
-        {parts.length > 0 ? (
-          <Text>
-            {parts.map((p, i) => (
-              <Text>
-                {i > 0 ? <Text dimColor> · </Text> : ''}
-                {p.percent === undefined ? <Text dimColor>{p.label}</Text> : <Text color={levelColor(p.percent)}>{p.label}</Text>}
-              </Text>
-            ))}
           </Text>
         ) : (
-          <Text dimColor>Usage figures appear after the first reply.</Text>
+          <Text size="caption" dimColor>
+            Task: no checklist yet{e.props.isWorking ? ' (working…)' : ''}
+          </Text>
+        )}
+        {parts.length > 0 ? (
+          <Text size="caption" tabular>
+            {parts.map((p, i) => {
+              const warn = p.percent === undefined ? null : flag(p.percent)
+              return (
+                <Text>
+                  {i > 0 ? <Text dimColor> · </Text> : ''}
+                  <Text color={itemColor(p.key)}>{p.label}</Text>
+                  {warn ? <Text color={warn.color}>{warn.glyph}</Text> : ''}
+                </Text>
+              )
+            })}
+          </Text>
+        ) : (
+          <Text size="caption" dimColor>
+            Usage figures appear after the first reply.
+          </Text>
         )}
       </Box>
     )

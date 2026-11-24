@@ -51,10 +51,11 @@ test('the band shows task percent, context, limits and cost on every surface', a
 
   for (const surface of ['terminal', 'desktop', 'vscode', 'mobile'] as const) {
     const ui = await $.ui.mount({ ...BAND, surface })
-    expect(await ui.find({ type: 'Text', text: /Task 25%/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /Task ▰+▱+ 25%/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /Writing fix/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /Context .* 42%/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /5h limit .* 85%/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /⚠/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /~\$1\.23 est\./ })).toBeDefined()
     await ui.unmount()
   }
